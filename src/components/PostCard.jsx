@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { getPostComments } from '../services/api';
 import { getRandomPostImage } from '../utils/helpers';
 import CommentList from './CommentList';
 
@@ -8,7 +7,7 @@ const PostCard = ({ post, username, showComments = false }) => {
   const [commentCount, setCommentCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
-
+  
   useEffect(() => {
     if (showComments) {
       fetchComments();
@@ -18,9 +17,13 @@ const PostCard = ({ post, username, showComments = false }) => {
   const fetchComments = async () => {
     setIsLoading(true);
     try {
-      const commentsData = await getPostComments(post.id);
-      setComments(commentsData);
-      setCommentCount(commentsData.length);
+      const response = await fetch(`http://localhost:5000/posts/${post.id}/comments`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch comments for post ${post.id}`);
+      }
+      const data = await response.json();
+      setComments(data.comments);
+      setCommentCount(data.comments.length);
     } catch (error) {
       console.error('Error fetching comments:', error);
     } finally {

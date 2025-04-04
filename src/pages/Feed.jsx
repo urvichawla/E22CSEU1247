@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getUsers, getUserPosts } from '../services/api';
 import PostCard from '../components/PostCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -10,11 +9,10 @@ const Feed = () => {
   const [error, setError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const intervalRef = useRef(null);
-  const postCacheRef = useRef(new Map()); // Cache posts to avoid duplicates
+  const postCacheRef = useRef(new Map());
 
-  // Memoize fetchFeed to avoid recreating on every render
+  // Memoized fetch function to avoid re-creating on each render
   const fetchFeed = useCallback(async (isInitialLoad = false) => {
-    // Show different loading states for initial load vs refresh
     if (isInitialLoad) {
       setIsLoading(true);
     } else {
@@ -22,29 +20,35 @@ const Feed = () => {
     }
     
     try {
-      // First get all users
-      const usersData = await getUsers();
-      setUsers(usersData);
+      // First get all users from our backend
+      const usersResponse = await fetch('http://localhost:5000/users');
+      if (!usersResponse.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const usersData = await usersResponse.json();
+      setUsers(usersData.users);
       
-      // Get posts from different users to ensure variety
-      // Randomly select 5 users for each refresh to get different content
-      const allUserIds = Object.keys(usersData);
+      // Get posts from random users to simulate a dynamic feed
+      const allUserIds = Object.keys(usersData.users);
       const randomUserIds = getRandomUsers(allUserIds, 5);
       
-      // Process users in sequence to avoid overwhelming the API
       let newPosts = [];
       
+      // Process each user sequentially to avoid overwhelming the API
       for (const userId of randomUserIds) {
         try {
-          const userPosts = await getUserPosts(userId);
+          const postsResponse = await fetch(`http://localhost:5000/users/${userId}/posts`);
+          if (!postsResponse.ok) {
+            throw new Error(`Failed to fetch posts for user ${userId}`);
+          }
+          const postsData = await postsResponse.json();
           
-          const processedPosts = userPosts.map(post => {
-            // Generate a consistent timestamp if none exists
-            const timestamp = post.timestamp || new Date().toISOString();
+          // Add user info and timestamp to each post
+          const processedPosts = postsData.posts.map(post => {
             return { 
               ...post, 
               userId,
-              timestamp
+              timestamp: new Date().toISOString()
             };
           });
           
@@ -55,27 +59,24 @@ const Feed = () => {
         }
       }
       
-      // Add new posts to the cache to track what we've seen
+      // Add new posts to our cache
       newPosts.forEach(post => {
         if (!postCacheRef.current.has(post.id)) {
           postCacheRef.current.set(post.id, post);
         }
       });
       
-      // Get all posts from cache
+      // Get all cached posts
       const allCachedPosts = Array.from(postCacheRef.current.values());
       
-      // Sort by timestamp (newest first)
+      // Sort by timestamp, newest first
       const sortedPosts = allCachedPosts.sort((a, b) => {
         const dateA = new Date(a.timestamp || 0);
         const dateB = new Date(b.timestamp || 0);
         return dateB - dateA;
       });
       
-      // Update state with sorted posts
       setPosts(sortedPosts);
-
-      // Clear error if successful
       setError(null);
     } catch (error) {
       console.error('Error fetching feed:', error);
@@ -86,26 +87,25 @@ const Feed = () => {
     }
   }, []);
 
-  // Helper function to get random users
+  // Helper to get random users for feed
   const getRandomUsers = (userIds, count) => {
     const shuffled = [...userIds].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
   };
 
-  // Manual refresh handler
   const handleRefresh = () => {
     fetchFeed(false);
   };
 
-  // Setup polling when component mounts
   useEffect(() => {
     // Initial load
     fetchFeed(true);
     
-    // Set up polling for real-time updates
+    // Set up polling for new posts
     const POLLING_INTERVAL = 30000; // 30 seconds
     intervalRef.current = setInterval(() => fetchFeed(false), POLLING_INTERVAL);
     
+    // Cleanup on unmount
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

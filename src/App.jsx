@@ -21,7 +21,7 @@ function App() {
               <ul className="flex space-x-4 md:space-x-6 font-bold text-lg">
                 <li>
                   <NavLink
-                    to="/"
+                    to="/users"
                     className={({ isActive }) =>
                       `px-6 py-2 rounded-md transition-all ${
                         isActive
@@ -29,7 +29,6 @@ function App() {
                           : "bg-blue-400 text-white hover:bg-blue-300 hover:text-blue-800 hover:shadow-md"
                       }`
                     }
-                    end
                   >
                     Top Users
                   </NavLink>
@@ -69,7 +68,8 @@ function App() {
         
         <main className="container mx-auto p-4 mt-6">
           <Routes>
-            <Route path="/" element={<TopUsers />} />
+            <Route path="/" element={<Feed />} />
+            <Route path="/users" element={<TopUsers />} />
             <Route path="/trending" element={<TrendingPosts />} />
             <Route path="/feed" element={<Feed />} />
           </Routes>

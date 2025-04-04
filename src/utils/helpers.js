@@ -14,3 +14,8 @@ export const getRandomUserImage = () => {
   export const formatDate = (date) => {
     return new Date(date).toLocaleString();
   };
+
+  export const truncateText = (text, maxLength = 100) => {
+    if (!text || text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength)}...`;
+  };

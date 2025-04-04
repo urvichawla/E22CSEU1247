@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUsers, getUserPosts, getPostComments } from '../services/api';
 import PostCard from '../components/PostCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -10,63 +9,63 @@ const TrendingPosts = () => {
   const [error, setError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Use a more efficient approach to find trending posts
   const fetchTrendingPosts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // First get all users
-      const usersData = await getUsers();
-      setUsers(usersData);
+      const usersResponse = await fetch('http://localhost:5000/users');
+      if (!usersResponse.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const usersData = await usersResponse.json();
+      setUsers(usersData.users);
       
-      // Get posts from more users but limit number per user
-      // This increases our chances of finding truly popular posts
-      const userIds = Object.keys(usersData).slice(0, 10); // Increased to 10 users
+      const userIds = Object.keys(usersData.users).slice(0, 10);
       
-      // Store all fetched posts
       let allPosts = [];
       
-      // Process users one by one to avoid overwhelming the API
       for (const userId of userIds) {
         try {
-          const posts = await getUserPosts(userId);
-          // Add user info and take only first 5 posts per user
-          const postsWithUser = posts.slice(0, 5).map(post => ({ ...post, userId }));
+          const postsResponse = await fetch(`http://localhost:5000/users/${userId}/posts`);
+          if (!postsResponse.ok) {
+            throw new Error(`Failed to fetch posts for user ${userId}`);
+          }
+          const postsData = await postsResponse.json();
+          
+          const postsWithUser = postsData.posts.slice(0, 5).map(post => ({ ...post, userId }));
           allPosts = [...allPosts, ...postsWithUser];
         } catch (error) {
           console.error(`Error fetching posts for user ${userId}:`, error);
-          // Continue with other users even if one fails
         }
       }
       
-      // If no posts were found, show error
       if (allPosts.length === 0) {
         throw new Error('No posts found. Try again later.');
       }
       
-      // Create a map to efficiently track comment counts
       const commentCountMap = new Map();
       let maxCommentCount = 0;
       
-      // Process posts in batches to get comments
       const BATCH_SIZE = 5;
       for (let i = 0; i < allPosts.length; i += BATCH_SIZE) {
         const batch = allPosts.slice(i, i + BATCH_SIZE);
         
-        // Process each post in the batch in parallel
         const batchPromises = batch.map(async (post) => {
           try {
-            const comments = await getPostComments(post.id);
-            const commentCount = comments.length;
+            const commentsResponse = await fetch(`http://localhost:5000/posts/${post.id}/comments`);
+            if (!commentsResponse.ok) {
+              throw new Error(`Failed to fetch comments for post ${post.id}`);
+            }
+            const commentsData = await commentsResponse.json();
+            const commentCount = commentsData.comments.length;
             
-            // Update the maximum comment count
             maxCommentCount = Math.max(maxCommentCount, commentCount);
             
             return { 
               ...post, 
               commentCount, 
-              comments
+              comments: commentsData.comments
             };
           } catch (error) {
             console.error(`Error fetching comments for post ${post.id}:`, error);
@@ -76,22 +75,17 @@ const TrendingPosts = () => {
         
         const postsWithComments = await Promise.all(batchPromises);
         
-        // Add each post to our map
         postsWithComments.forEach(post => {
           commentCountMap.set(post.id, post);
         });
       }
       
-      // Extract all posts from the map
       const processedPosts = Array.from(commentCountMap.values());
       
-      // Filter posts with max comment count
       const trending = processedPosts.filter(post => post.commentCount === maxCommentCount);
       
-      // Sort by post ID for consistency if multiple posts have the same comment count
       const sortedTrending = trending.sort((a, b) => b.id - a.id);
       
-      // Limit the display to prevent overwhelming the user
       setTrendingPosts(sortedTrending.slice(0, 4));
     } catch (error) {
       console.error('Error fetching trending posts:', error);
