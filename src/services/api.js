@@ -1,5 +1,16 @@
 const BASE_URL = 'http://20.244.56.144/evaluation-service';
 
+// Authentication token
+const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiZXhwIjoxNzQzNzQ3OTk0LCJpYXQiOjE3NDM3NDc2OTQsImlzcyI6IkFmZm9yZG1lZCIsImp0aSI6IjA3ZjFkNTJlLWFjZDEtNDgxMy1iNmU1LWMwZWYyODg5YzkwZiIsInN1YiI6ImUyMmNzZXUxMjQ3QGJlbm5ldHQuZWR1LmluIn0sImVtYWlsIjoiZTIyY3NldTEyNDdAYmVubmV0dC5lZHUuaW4iLCJuYW1lIjoidXJ2aSBjaGF3bGEiLCJyb2xsTm8iOiJlMjJjc2V1MTI0NyIsImFjY2Vzc0NvZGUiOiJydENIWkoiLCJjbGllbnRJRCI6IjA3ZjFkNTJlLWFjZDEtNDgxMy1iNmU1LWMwZWYyODg5YzkwZiIsImNsaWVudFNlY3JldCI6IlVDWkRndHZaSFBQTmFram0ifQ.aKWJAxKeoZ6dVMQH2mi9FpsGqL7O_2BJMaVu7vAAKGA";
+
+// Default headers with authentication
+const getHeaders = () => {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${AUTH_TOKEN}`
+  };
+};
+
 // Sample data for fallback if API fails
 const MOCK_USERS = {
   "1": "John Doe",
@@ -71,7 +82,9 @@ export const getUsers = async () => {
     }
 
     console.log('Fetching users from API');
-    const response = await fetch(`${BASE_URL}/users`);
+    const response = await fetch(`${BASE_URL}/users`, {
+      headers: getHeaders()
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch users');
     }
@@ -100,7 +113,9 @@ export const getUserPosts = async (userId) => {
     }
 
     console.log(`Fetching posts for user ${userId} from API`);
-    const response = await fetch(`${BASE_URL}/users/${userId}/posts`);
+    const response = await fetch(`${BASE_URL}/users/${userId}/posts`, {
+      headers: getHeaders()
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch posts for user ${userId}`);
     }
@@ -135,7 +150,9 @@ export const getPostComments = async (postId) => {
     }
 
     console.log(`Fetching comments for post ${postId} from API`);
-    const response = await fetch(`${BASE_URL}/posts/${postId}/comments`);
+    const response = await fetch(`${BASE_URL}/posts/${postId}/comments`, {
+      headers: getHeaders()
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch comments for post ${postId}`);
     }
