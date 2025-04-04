@@ -66,3 +66,12 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+<<<<<<< HEAD
+=======
+
+/* Remove the default body styling from Vite */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+>>>>>>> aae6ad5 (task 1 done)
